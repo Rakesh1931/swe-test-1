@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+dist/
+frontend/dist/
+build/
+backend/build/
+bin/
+backend/bin/
+
+# Gradle
+.gradle/
+backend/.gradle/
+*.lock
+*.bin
+
+# IDE & OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Temporary directories
+/tmp/
+tmp/
