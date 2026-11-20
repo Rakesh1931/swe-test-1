@@ -47,7 +47,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://ecocode-backend.onrender.com/api
+        value: https://ecocode-backend-4p8f.onrender.com/api
     routes:
       - type: rewrite
         source: /*
