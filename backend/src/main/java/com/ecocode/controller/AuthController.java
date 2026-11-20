@@ -53,11 +53,43 @@ public class AuthController {
         return ResponseEntity.status(401).body(Map.of("error", "Invalid email or password"));
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> req) {
+        String email = req.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
+        }
+        Optional<User> userOpt = userRepository.findByEmail(email.trim());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No account registered with email: " + email));
+        }
+        return ResponseEntity.ok(Map.of("message", "User verified. You can now reset your password.", "email", email.trim()));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> req) {
+        String email = req.get("email");
+        String newPassword = req.get("newPassword");
+        if (email == null || email.isBlank() || newPassword == null || newPassword.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email and new password are required"));
+        }
+        if (newPassword.trim().length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Password must be at least 6 characters long"));
+        }
+        Optional<User> userOpt = userRepository.findByEmail(email.trim());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No account registered with email: " + email));
+        }
+        User user = userOpt.get();
+        user.setPassword(passwordEncoder.encode(newPassword.trim()));
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("message", "Password reset successfully. You can now log in with your new password."));
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
-            // Return default fallback user object for non-authenticated sessions
-            return ResponseEntity.ok(Map.of("username", "Developer", "email", "dev@ecocode.io", "role", "DEVELOPER"));
+            return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
         }
         User user = (User) authentication.getPrincipal();
         return ResponseEntity.ok(Map.of("id", user.getId(), "username", user.getUsername(), "email", user.getEmail(), "role", user.getRole()));

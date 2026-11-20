@@ -70,17 +70,38 @@ public class AnalysisService {
         // Validation & Source Resolution: NEVER fall back to sample project
         if (workingPath == null || workingPath.isBlank()) {
             if (repoUrl != null && !repoUrl.isBlank()) {
+                File tempDir = new File(System.getProperty("java.io.tmpdir"), "ecocode-sandbox" + File.separator + "git-" + runId);
                 try {
-                    File tempDir = new File("/tmp/ecocode-sandbox/git-" + runId);
-                    tempDir.mkdirs();
-                    String branchToUse = (run.getBranch() != null && !run.getBranch().isBlank()) ? run.getBranch() : "main";
-                    log.info("Cloning repository {} (branch: {}) into {}", repoUrl, branchToUse, tempDir.getAbsolutePath());
-                    try (Git git = Git.cloneRepository()
-                            .setURI(repoUrl)
-                            .setDirectory(tempDir)
-                            .setBranch(branchToUse)
-                            .call()) {
-                        workingPath = tempDir.getAbsolutePath();
+                    if (tempDir.exists()) {
+                        deleteRecursively(tempDir);
+                    }
+                    tempDir.getParentFile().mkdirs();
+
+                    String requestedBranch = (run.getBranch() != null && !run.getBranch().isBlank()) ? run.getBranch().trim() : null;
+                    log.info("Cloning repository {} (branch: {}) into {}", repoUrl, requestedBranch != null ? requestedBranch : "default", tempDir.getAbsolutePath());
+
+                    try {
+                        var cloneCmd = Git.cloneRepository()
+                                .setURI(repoUrl)
+                                .setDirectory(tempDir);
+                        if (requestedBranch != null) {
+                            cloneCmd.setBranch(requestedBranch);
+                        }
+                        try (Git git = cloneCmd.call()) {
+                            workingPath = tempDir.getAbsolutePath();
+                        }
+                    } catch (Exception branchEx) {
+                        // If requested branch failed (e.g. main vs master), retry with default branch
+                        if (tempDir.exists()) {
+                            deleteRecursively(tempDir);
+                        }
+                        log.warn("Cloning specific branch failed ({}), retrying with default repository branch...", branchEx.getMessage());
+                        try (Git git = Git.cloneRepository()
+                                .setURI(repoUrl)
+                                .setDirectory(tempDir)
+                                .call()) {
+                            workingPath = tempDir.getAbsolutePath();
+                        }
                     }
                 } catch (Exception e) {
                     log.error("Failed to clone git repository {}: {}", repoUrl, e.getMessage());
@@ -123,21 +144,22 @@ public class AnalysisService {
             log.info("Starting static analysis for run {} on path: {}", runId, workingPath);
 
             // Step 4-7: Static Analysis
-            List<StaticIssue> issues = staticAnalyzerService.analyzeProject(workingPath);
+            StaticAnalyzerService.AnalysisResult analysisResult = staticAnalyzerService.analyze(workingPath);
+            List<StaticIssue> issues = analysisResult.getIssues();
             for (StaticIssue issue : issues) {
                 issue.setAnalysisRun(run);
                 issueRepository.save(issue);
             }
 
             // Step 9-10: Runtime Profiling
-            List<RuntimeMetric> metrics = runtimeProfilerService.profile(workingPath, run);
+            List<RuntimeMetric> metrics = runtimeProfilerService.profile(workingPath, run, analysisResult.getModel(), issues);
             for (RuntimeMetric metric : metrics) {
                 metric.setAnalysisRun(run);
                 metricRepository.save(metric);
             }
 
             // Step 11-12: EcoScore Computation
-            EcoScore score = ecoScoreService.compute(run, issues, metrics);
+            EcoScore score = ecoScoreService.compute(run, issues, metrics, analysisResult.getModel());
             scoreRepository.save(score);
 
             // Step 13: Report JSON Generation
@@ -157,6 +179,19 @@ public class AnalysisService {
             log.error("Analysis run {} failed with exception: {}", runId, e.getMessage(), e);
             markFailed(run, "Analysis execution failed: " + e.getMessage());
         }
+    }
+
+    private void deleteRecursively(File file) {
+        if (file == null || !file.exists()) return;
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    deleteRecursively(child);
+                }
+            }
+        }
+        file.delete();
     }
 
     private void markFailed(AnalysisRun run, String reason) {

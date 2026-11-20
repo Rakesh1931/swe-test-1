@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiGet, apiPost } from '../api/client';
-import { Plus, FolderGit2, AlertTriangle, ShieldCheck, Activity, ChevronRight, X } from 'lucide-react';
+import { Plus, FolderGit2, AlertTriangle, ShieldCheck, Activity, ChevronRight, X, Lock, LogIn } from 'lucide-react';
 import { EcoScoreGauge } from '../components/EcoScoreGauge';
 
 export interface ProjectItem {
@@ -27,8 +27,18 @@ export const DashboardPage: React.FC = () => {
   const [description, setDescription] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+
+  const navigate = useNavigate();
+  const token = localStorage.getItem('eco_token');
 
   const fetchProjects = async () => {
+    if (!token) {
+      setProjects([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       const data = await apiGet<ProjectItem[]>('/projects');
       setProjects(data || []);
@@ -41,10 +51,30 @@ export const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [token]);
+
+  const handleOpenNewProject = () => {
+    if (!token) {
+      navigate('/login', {
+        state: { notice: 'Please sign in or register to create and manage projects.' },
+      });
+      return;
+    }
+    setCreateError('');
+    setModalOpen(true);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCreateError('');
+
+    if (!token) {
+      navigate('/login', {
+        state: { notice: 'Please sign in or register to create a project.' },
+      });
+      return;
+    }
+
     setCreating(true);
     try {
       await apiPost('/projects', { name, description, repoUrl });
@@ -53,23 +83,54 @@ export const DashboardPage: React.FC = () => {
       setRepoUrl('');
       setModalOpen(false);
       fetchProjects();
-    } catch (err) {
-      console.error('Failed to create project:', err);
+    } catch (err: any) {
+      setCreateError(err.message || 'Failed to create project.');
     } finally {
       setCreating(false);
     }
   };
 
-  const avgEcoScore = projects.length > 0
-    ? Math.round(
-        projects.reduce((acc, p) => acc + (p.lastEcoScore || 70), 0) / projects.length
-      )
-    : 0;
+  // Honest score calculation: only average projects that actually have completed scores
+  const analyzedProjects = projects.filter((p) => p.lastEcoScore !== undefined && p.lastEcoScore !== null);
+  const avgEcoScore = analyzedProjects.length > 0
+    ? Math.round(analyzedProjects.reduce((acc, p) => acc + (p.lastEcoScore || 0), 0) / analyzedProjects.length)
+    : null;
 
   const totalHighIssues = projects.reduce((acc, p) => acc + (p.highIssues || 0), 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Guest Notice Banner if Not Signed In */}
+      {!token && (
+        <div className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900/60 to-slate-900/60 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Sign In to Manage Your Projects</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Each developer has their own private workspace. Sign in or register to register and analyze your Java repositories.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/login"
+              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 flex items-center gap-1.5"
+            >
+              <LogIn className="w-3.5 h-3.5" /> Sign In
+            </Link>
+            <Link
+              to="/register"
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700"
+            >
+              Register
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Quick Stats Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
@@ -78,7 +139,7 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={handleOpenNewProject}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all"
         >
           <Plus className="w-4 h-4" />
@@ -93,7 +154,7 @@ export const DashboardPage: React.FC = () => {
             <FolderGit2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Projects</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">My Projects</p>
             <p className="text-2xl font-extrabold text-white mt-0.5">{projects.length}</p>
           </div>
         </div>
@@ -104,7 +165,9 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div>
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Average EcoScore</p>
-            <p className="text-2xl font-extrabold text-emerald-400 mt-0.5">{avgEcoScore} / 100</p>
+            <p className="text-2xl font-extrabold text-emerald-400 mt-0.5">
+              {avgEcoScore !== null ? `${avgEcoScore} / 100` : '—'}
+            </p>
           </div>
         </div>
 
@@ -125,13 +188,19 @@ export const DashboardPage: React.FC = () => {
       ) : projects.length === 0 ? (
         <div className="glass-card p-12 text-center rounded-2xl border border-slate-800">
           <FolderGit2 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-slate-200">No Projects Found</h3>
-          <p className="text-sm text-slate-400 mt-1 mb-6">Create a project to start analyzing Java AST rules and runtime metrics.</p>
+          <h3 className="text-lg font-bold text-slate-200">
+            {!token ? 'Sign In to View Your Projects' : 'No Projects Found'}
+          </h3>
+          <p className="text-sm text-slate-400 mt-1 mb-6">
+            {!token
+              ? 'Each user has a private repository workspace. Sign in or register to get started.'
+              : 'Create a project to start analyzing Java AST rules and runtime metrics.'}
+          </p>
           <button
-            onClick={() => setModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-sm"
+            onClick={handleOpenNewProject}
+            className="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-sm hover:bg-emerald-600 transition-all shadow-md shadow-emerald-500/20"
           >
-            Create Project
+            {!token ? 'Sign In / Register' : 'Create Project'}
           </button>
         </div>
       ) : (
@@ -153,8 +222,12 @@ export const DashboardPage: React.FC = () => {
                     </span>
                   </div>
 
-                  {p.lastEcoScore !== undefined && (
+                  {p.lastEcoScore !== undefined && p.lastEcoScore !== null ? (
                     <EcoScoreGauge score={p.lastEcoScore} size={64} strokeWidth={6} showLabel={false} />
+                  ) : (
+                    <span className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400">
+                      Not Analyzed
+                    </span>
                   )}
                 </div>
 
@@ -177,7 +250,7 @@ export const DashboardPage: React.FC = () => {
                 </div>
 
                 <span className="flex items-center gap-1 text-emerald-400 font-medium group-hover:translate-x-1 transition-transform">
-                  View Runs <ChevronRight className="w-3.5 h-3.5" />
+                  View Runs ({p.totalRuns}) <ChevronRight className="w-3.5 h-3.5" />
                 </span>
               </div>
             </Link>
@@ -197,6 +270,12 @@ export const DashboardPage: React.FC = () => {
             </button>
 
             <h2 className="text-xl font-bold text-white mb-4">Register New Java Project</h2>
+
+            {createError && (
+              <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
+                {createError}
+              </div>
+            )}
 
             <form onSubmit={handleCreate} className="space-y-4">
               <div>

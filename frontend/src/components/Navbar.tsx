@@ -1,13 +1,16 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, LayoutDashboard, GitCompare, LogOut, Code2 } from 'lucide-react';
+import { Leaf, LayoutDashboard, GitCompare, LogOut, Code2, UserCircle2 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('eco_token');
+  const userJson = localStorage.getItem('eco_user');
+  const user = userJson ? JSON.parse(userJson) : null;
 
   const handleLogout = () => {
     localStorage.removeItem('eco_token');
+    localStorage.removeItem('eco_user');
     navigate('/login');
   };
 
@@ -46,21 +49,41 @@ export const Navbar: React.FC = () => {
             </Link>
 
             {token ? (
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-rose-400 transition-colors px-3 py-1.5 rounded-lg border border-slate-800 hover:border-rose-500/30"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </button>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300">
+                  <UserCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="font-semibold">{user?.username || 'Developer'}</span>
+                  {user?.role && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-mono">
+                      {user.role}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-rose-400 transition-colors px-3 py-1.5 rounded-lg border border-slate-800 hover:border-rose-500/30"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
             ) : (
-              <Link
-                to="/login"
-                className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 transition-all shadow-md shadow-emerald-500/20"
-              >
-                <Code2 className="w-4 h-4" />
-                Sign In
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/login"
+                  className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg text-slate-300 hover:text-white transition-colors"
+                >
+                  <Code2 className="w-4 h-4" />
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="text-sm font-semibold px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 transition-all shadow-md shadow-emerald-500/20"
+                >
+                  Register
+                </Link>
+              </div>
             )}
           </div>
         </div>

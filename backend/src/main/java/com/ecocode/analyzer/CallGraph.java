@@ -4,6 +4,7 @@ import java.util.*;
 
 public class CallGraph {
     private final Map<String, Set<String>> edges = new HashMap<>();
+    private final Map<String, Integer> depthCache = new HashMap<>();
 
     public void addEdge(String caller, String callee) {
         if (caller == null || callee == null) return;
@@ -61,21 +62,38 @@ public class CallGraph {
         return false;
     }
 
+    /**
+     * Fast bounded depth calculation. Threshold for EC106 is 8, so we bound search to max 12.
+     * Uses memoization to avoid exponential re-evaluations.
+     */
     public int getReachabilityDepth(String startMethod) {
         if (startMethod == null || !edges.containsKey(startMethod)) return 0;
+        if (depthCache.containsKey(startMethod)) {
+            return depthCache.get(startMethod);
+        }
 
         Set<String> visited = new HashSet<>();
-        return calculateDepth(startMethod, visited);
+        int depth = calculateDepthBounded(startMethod, visited, 0, 12);
+        depthCache.put(startMethod, depth);
+        return depth;
     }
 
-    private int calculateDepth(String curr, Set<String> visited) {
+    private int calculateDepthBounded(String curr, Set<String> visited, int currentDepth, int maxLimit) {
+        if (currentDepth >= maxLimit) {
+            return maxLimit;
+        }
         visited.add(curr);
         int maxChildDepth = 0;
+
         for (String neighbor : edges.getOrDefault(curr, Collections.emptySet())) {
             if (!visited.contains(neighbor)) {
-                maxChildDepth = Math.max(maxChildDepth, calculateDepth(neighbor, new HashSet<>(visited)));
+                int child = calculateDepthBounded(neighbor, visited, currentDepth + 1, maxLimit);
+                maxChildDepth = Math.max(maxChildDepth, child);
+                if (maxChildDepth >= maxLimit) break;
             }
         }
+
+        visited.remove(curr); // backtrack efficiently without cloning sets
         return 1 + maxChildDepth;
     }
 

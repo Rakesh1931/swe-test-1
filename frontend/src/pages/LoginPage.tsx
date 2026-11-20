@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { apiPost } from '../api/client';
-import { Leaf, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Leaf, Lock, Mail, ArrowRight, Info } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -9,15 +9,23 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const notice = (location.state as any)?.notice;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const res = await apiPost<{ token: string }>('/auth/login', { email, password });
+      const res = await apiPost<{ token: string; username: string; email: string; role: string }>('/auth/login', { email, password });
       if (res.token) {
         localStorage.setItem('eco_token', res.token);
+        localStorage.setItem('eco_user', JSON.stringify({
+          username: res.username,
+          email: res.email,
+          role: res.role
+        }));
         navigate('/dashboard');
       }
     } catch (err: any) {
@@ -41,6 +49,13 @@ export const LoginPage: React.FC = () => {
           </h1>
           <p className="text-sm text-slate-400 mt-1">Sign in to profile Java resource efficiency</p>
         </div>
+
+        {notice && (
+          <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
+            <Info className="w-4 h-4 shrink-0" />
+            <span>{notice}</span>
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs text-center font-medium">
@@ -67,9 +82,17 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                Password
+              </label>
+              <Link
+                to="/forgot-password"
+                className="text-xs text-emerald-400 hover:underline font-semibold"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
               <input

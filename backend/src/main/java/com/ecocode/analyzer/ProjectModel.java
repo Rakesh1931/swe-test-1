@@ -1,17 +1,18 @@
 package com.ecocode.analyzer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ProjectModel {
     private String projectPath;
-    private List<ClassInfo> classes = new ArrayList<>();
-    private List<MethodCallInfo> allMethodCalls = new ArrayList<>();
+    private final List<ClassInfo> classes = Collections.synchronizedList(new ArrayList<>());
+    private final List<MethodCallInfo> allMethodCalls = Collections.synchronizedList(new ArrayList<>());
 
     // Additional detected AST structures for special rule checks
-    private List<StringConcatEvent> stringConcatsInLoop = new ArrayList<>();
-    private List<ObjectCreationEvent> objectCreationsInLoop = new ArrayList<>();
-    private List<ResourceHandlingEvent> unclosedResources = new ArrayList<>();
+    private final List<StringConcatEvent> stringConcatsInLoop = Collections.synchronizedList(new ArrayList<>());
+    private final List<ObjectCreationEvent> objectCreationsInLoop = Collections.synchronizedList(new ArrayList<>());
+    private final List<ResourceHandlingEvent> unclosedResources = Collections.synchronizedList(new ArrayList<>());
 
     public ProjectModel() {}
 
@@ -23,19 +24,19 @@ public class ProjectModel {
     public void setProjectPath(String projectPath) { this.projectPath = projectPath; }
 
     public List<ClassInfo> getClasses() { return classes; }
-    public void setClasses(List<ClassInfo> classes) { this.classes = classes; }
+    public synchronized void addClass(ClassInfo cls) { this.classes.add(cls); }
 
     public List<MethodCallInfo> getAllMethodCalls() { return allMethodCalls; }
-    public void setAllMethodCalls(List<MethodCallInfo> allMethodCalls) { this.allMethodCalls = allMethodCalls; }
+    public synchronized void addMethodCall(MethodCallInfo call) { this.allMethodCalls.add(call); }
 
     public List<StringConcatEvent> getStringConcatsInLoop() { return stringConcatsInLoop; }
-    public void setStringConcatsInLoop(List<StringConcatEvent> stringConcatsInLoop) { this.stringConcatsInLoop = stringConcatsInLoop; }
+    public synchronized void addStringConcatEvent(StringConcatEvent event) { this.stringConcatsInLoop.add(event); }
 
     public List<ObjectCreationEvent> getObjectCreationsInLoop() { return objectCreationsInLoop; }
-    public void setObjectCreationsInLoop(List<ObjectCreationEvent> objectCreationsInLoop) { this.objectCreationsInLoop = objectCreationsInLoop; }
+    public synchronized void addObjectCreationEvent(ObjectCreationEvent event) { this.objectCreationsInLoop.add(event); }
 
     public List<ResourceHandlingEvent> getUnclosedResources() { return unclosedResources; }
-    public void setUnclosedResources(List<ResourceHandlingEvent> unclosedResources) { this.unclosedResources = unclosedResources; }
+    public synchronized void addUnclosedResource(ResourceHandlingEvent event) { this.unclosedResources.add(event); }
 
     public static class StringConcatEvent {
         public String filePath;

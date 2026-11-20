@@ -16,9 +16,14 @@ export const RegisterPage: React.FC = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await apiPost<{ token: string }>('/auth/register', { username, email, password });
+      const res = await apiPost<{ token: string; username: string; email: string; role: string }>('/auth/register', { username, email, password });
       if (res.token) {
         localStorage.setItem('eco_token', res.token);
+        localStorage.setItem('eco_user', JSON.stringify({
+          username: res.username || username,
+          email: res.email || email,
+          role: res.role || 'DEVELOPER'
+        }));
         navigate('/dashboard');
       }
     } catch (err: any) {

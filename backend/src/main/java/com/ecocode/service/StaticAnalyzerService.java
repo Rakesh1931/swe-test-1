@@ -12,11 +12,24 @@ public class StaticAnalyzerService {
 
     private final RuleEngine ruleEngine;
 
+    public static class AnalysisResult {
+        private final ProjectModel model;
+        private final List<StaticIssue> issues;
+
+        public AnalysisResult(ProjectModel model, List<StaticIssue> issues) {
+            this.model = model;
+            this.issues = issues;
+        }
+
+        public ProjectModel getModel() { return model; }
+        public List<StaticIssue> getIssues() { return issues; }
+    }
+
     public StaticAnalyzerService(RuleEngine ruleEngine) {
         this.ruleEngine = ruleEngine;
     }
 
-    public List<StaticIssue> analyzeProject(String projectPath) {
+    public AnalysisResult analyze(String projectPath) {
         JavaProjectParser parser = new JavaProjectParser();
         ProjectModel model = parser.parseProject(projectPath);
 
@@ -25,6 +38,11 @@ public class StaticAnalyzerService {
 
         CallGraph callGraph = CallGraph.buildFrom(model);
 
-        return ruleEngine.run(model, callGraph);
+        List<StaticIssue> issues = ruleEngine.run(model, callGraph);
+        return new AnalysisResult(model, issues);
+    }
+
+    public List<StaticIssue> analyzeProject(String projectPath) {
+        return analyze(projectPath).getIssues();
     }
 }

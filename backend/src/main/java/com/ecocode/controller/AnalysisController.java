@@ -81,8 +81,17 @@ public class AnalysisController {
             return ResponseEntity.badRequest().body(Map.of("error", "Project not found with id: " + req.getProjectId()));
         }
 
-        User user = getOrCreateDefaultUser(auth);
-        AnalysisRun run = analysisService.createRun(projOpt.get(), user, req.getSourcePath(), req.getRepoUrl(), req.getBranch());
+        if (auth == null || !(auth.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(401).body(Map.of("error", "You must be signed in to start an analysis."));
+        }
+        User user = (User) auth.getPrincipal();
+        Project project = projOpt.get();
+
+        if (project.getOwner() != null && !project.getOwner().getId().equals(user.getId()) && !"ADMIN".equalsIgnoreCase(user.getRole())) {
+            return ResponseEntity.status(403).body(Map.of("error", "Access denied: you do not own this project."));
+        }
+
+        AnalysisRun run = analysisService.createRun(project, user, req.getSourcePath(), req.getRepoUrl(), req.getBranch());
 
         analysisService.executeAnalysisAsync(run.getId(), req.getRepoUrl(), req.getSourcePath());
 

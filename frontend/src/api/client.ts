@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
+export const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('eco_token');

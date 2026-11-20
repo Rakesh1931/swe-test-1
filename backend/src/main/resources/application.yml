@@ -17,9 +17,12 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
 
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /
 

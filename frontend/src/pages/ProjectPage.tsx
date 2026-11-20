@@ -35,8 +35,9 @@ export const ProjectPage: React.FC = () => {
         setRepoUrl(data.project.repoUrl);
       }
       setRuns(data.runs || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load project details:', err);
+      setError(err.message || 'Failed to load project details.');
     } finally {
       setLoading(false);
     }
@@ -48,6 +49,14 @@ export const ProjectPage: React.FC = () => {
 
   const handleStartAnalysis = async () => {
     setError('');
+    const token = localStorage.getItem('eco_token');
+    if (!token) {
+      navigate('/login', {
+        state: { notice: 'Please sign in or register to execute an analysis run.' },
+      });
+      return;
+    }
+
     const cleanSource = sourcePath.trim();
     const cleanRepo = repoUrl.trim();
 
@@ -93,8 +102,31 @@ export const ProjectPage: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="text-center py-16 text-slate-400">Loading project...</div>;
-  if (!project) return <div className="text-center py-16 text-slate-400">Project not found.</div>;
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3 text-slate-400">
+        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm">Loading project details...</p>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="max-w-xl mx-auto py-20 text-center space-y-4">
+        <h2 className="text-xl font-bold text-white">Project Not Available</h2>
+        <p className="text-xs text-slate-400">
+          {error || 'The requested project could not be found, or you do not have permission to view it.'}
+        </p>
+        <Link
+          to="/dashboard"
+          className="inline-block px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs transition-colors"
+        >
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
