@@ -15,15 +15,23 @@ services:
     plan: free
     region: oregon
     envVars:
-      - key: SPRING_DATASOURCE_URL
+      - key: DB_HOST
         fromDatabase:
           name: ecocode-db
-          property: connectionString
-      - key: SPRING_DATASOURCE_USERNAME
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: ecocode-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: ecocode-db
+          property: database
+      - key: DB_USER
         fromDatabase:
           name: ecocode-db
           property: user
-      - key: SPRING_DATASOURCE_PASSWORD
+      - key: DB_PASSWORD
         fromDatabase:
           name: ecocode-db
           property: password

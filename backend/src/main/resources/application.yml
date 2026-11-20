@@ -2,9 +2,9 @@ spring:
   application:
     name: ecocode-backend
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ecocode}
-    username: ${SPRING_DATASOURCE_USERNAME:ecocode}
-    password: ${SPRING_DATASOURCE_PASSWORD:ecocode}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ecocode}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:ecocode}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:ecocode}}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
