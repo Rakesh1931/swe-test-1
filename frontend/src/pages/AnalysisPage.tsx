@@ -131,15 +131,6 @@ export const AnalysisPage: React.FC = () => {
             <div className="glass-card p-6 rounded-2xl border border-slate-800 flex flex-col items-center justify-center text-center">
               <EcoScoreGauge score={score.totalScore} size={180} strokeWidth={14} />
               <p className="text-xs text-slate-400 mt-2 font-medium">Composite Green-Software Rating</p>
-              <div className="mt-4 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 text-left">
-                <span className="font-semibold text-slate-200">Formula Weights:</span>
-                <br />
-                • CPU (25%) + Memory (20%)
-                <br />
-                • Database (20%) + Network (20%)
-                <br />
-                • Static Code AST (15%)
-              </div>
             </div>
 
             <div className="lg:col-span-2 glass-card p-6 rounded-2xl border border-slate-800 flex flex-col justify-between">

@@ -28,3 +28,15 @@ Thumbs.db
 # Temporary directories
 /tmp/
 tmp/
+
+# Academic reports & assets (local only - do not commit)
+*.pdf
+*.docx
+*.doc
+*.pptx
+report_assets/
+dfd_diagrams/
+sequence_diagrams/
+EcoCode_Lab_Eval_2_Report.pdf
+EcoCode_Lab_Eval_2_Presentation.pptx
+
